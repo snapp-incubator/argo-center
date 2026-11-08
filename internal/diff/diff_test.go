@@ -102,3 +102,26 @@ func TestNumbersStayUnquoted(t *testing.T) {
 		}
 	}
 }
+
+func TestMultilineStringsShowAsBlocks(t *testing.T) {
+	cm := func(data string) map[string]any {
+		return map[string]any{"kind": "ConfigMap", "data": map[string]any{"app.yaml": data}}
+	}
+	// Trailing spaces and CRLFs would otherwise force a single quoted line.
+	d, _, err := unified(cm("a: 1 \r\nb: 2\r\nc: 3\n"), cm("a: 1 \r\nb: 9\r\nc: 3\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(d, "-    b: 2\n") || !strings.Contains(d, "+    b: 9\n") || strings.Contains(d, `\n`) {
+		t.Fatalf("want a line-by-line block diff, got:\n%s", d)
+	}
+
+	// A whitespace-only change stays visible: the raw strings are kept.
+	d, _, err = unified(cm("a: 1 \nb: 2\n"), cm("a: 1\nb: 2\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(d, `-  app.yaml: "a: 1 \nb: 2\n"`) {
+		t.Fatalf("whitespace-only change hidden:\n%s", d)
+	}
+}

@@ -312,7 +312,60 @@ func toYAML(obj map[string]any) (string, error) {
 	return buf.String(), nil
 }
 
+// tidy returns a copy of v for display. YAML prints a multiline string as a block scalar (|) only
+// when no line ends in a space or tab and lines end in "\n"; otherwise it prints one long quoted
+// line, which makes a changed ConfigMap value unreadable. tidy drops trailing spaces and CRLFs from
+// such strings. other is the value at the same place on the other side: when tidying would hide
+// the only change to a string, the string is kept as is.
+func tidy(v, other any) any {
+	switch v := v.(type) {
+	case map[string]any:
+		o, _ := other.(map[string]any)
+		out := make(map[string]any, len(v))
+		for k, e := range v {
+			out[k] = tidy(e, o[k])
+		}
+		return out
+	case []any:
+		o, _ := other.([]any)
+		out := make([]any, len(v))
+		for i, e := range v {
+			var oe any
+			if i < len(o) {
+				oe = o[i]
+			}
+			out[i] = tidy(e, oe)
+		}
+		return out
+	case string:
+		t := tidyString(v)
+		if o, ok := other.(string); ok && o != v && tidyString(o) == t {
+			return v
+		}
+		return t
+	}
+	return v
+}
+
+var trailingBlanks = regexp.MustCompile(`[ \t]+(\n|$)`)
+
+func tidyString(s string) string {
+	if !strings.Contains(s, "\n") {
+		return s
+	}
+	s = strings.ReplaceAll(s, "\r\n", "\n")
+	return trailingBlanks.ReplaceAllString(s, "$1")
+}
+
 func unified(live, target map[string]any) (string, bool, error) {
+	if live != nil && target != nil {
+		live, target = tidy(live, target).(map[string]any), tidy(target, live).(map[string]any)
+	} else if live != nil {
+		live = tidy(live, nil).(map[string]any)
+	} else if target != nil {
+		target = tidy(target, nil).(map[string]any)
+	}
+	// (Go evaluates both tidy calls above before assigning, so each sees the other's raw side.)
 	before, err := toYAML(live)
 	if err != nil {
 		return "", false, err
