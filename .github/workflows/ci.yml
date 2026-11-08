@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: go vet ./...
+      - run: go test ./...
+      - name: Typecheck and build the frontend
+        working-directory: web
+        run: |
+          npm ci
+          npm run typecheck
+          npm run build
+      - uses: azure/setup-helm@v5
+      - name: Render the chart
+        run: |
+          common="--set config.clusters[0].key=a --set config.clusters[0].url=https://a.example.com --set argo_center.argocdTokens.a=x"
+          helm lint deploy/helm/argo-center --set config.insecureNoAuth=true $common
+          helm template deploy/helm/argo-center --set config.insecureNoAuth=true $common > /dev/null
+          helm template deploy/helm/argo-center --set config.insecureNoAuth=true $common \
+            --set ingress.enabled=true --set ingress.host=a.example.com > /dev/null
+          helm template deploy/helm/argo-center --set config.insecureNoAuth=true $common \
+            --set ingress.enabled=true --set ingress.kind=HTTPProxy --set ingress.host=a.example.com --set ingress.tlsSecret=t > /dev/null

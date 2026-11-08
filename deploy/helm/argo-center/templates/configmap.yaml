@@ -1,0 +1,58 @@
+{{- $cfg := .Values.config -}}
+{{- if and (not $cfg.insecureNoAuth) (not $cfg.oidc.issuer) -}}
+{{- fail "config.oidc.issuer is required (or set config.insecureNoAuth: true for a trial without login)" -}}
+{{- end -}}
+{{- if not $cfg.clusters -}}
+{{- fail "config.clusters needs at least one ArgoCD instance" -}}
+{{- end -}}
+{{- if and (not $cfg.insecureNoAuth) (not .Values.ingress.host) -}}
+{{- fail "ingress.host is required for login: the OIDC redirect URL is built from it" -}}
+{{- end -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argo-center
+  labels:
+    {{- include "argo-center.labels" . | nindent 4 }}
+data:
+  config.yaml: |
+    listen: ":8080"
+    resyncInterval: {{ $cfg.resyncInterval }}
+    {{- with .Values.ingress.host }}
+    publicURL: https://{{ . }}
+    {{- end }}
+    {{- if $cfg.insecureNoAuth }}
+    insecureNoAuth: true
+    {{- else }}
+    oidc:
+      issuer: {{ $cfg.oidc.issuer | quote }}
+      clientID: {{ $cfg.oidc.clientID | quote }}
+      clientSecretEnv: OIDC_CLIENT_SECRET
+      {{- with $cfg.oidc.allowedGroups }}
+      allowedGroups: {{ toJson . }}
+      {{- end }}
+      {{- with $cfg.oidc.groupsClaim }}
+      groupsClaim: {{ . | quote }}
+      {{- end }}
+      {{- with $cfg.oidc.scopes }}
+      scopes: {{ toJson . }}
+      {{- end }}
+    sessionKeyEnv: SESSION_KEY
+    {{- end }}
+    rollout:
+      healthTimeout: {{ $cfg.rollout.healthTimeout }}
+    storage:
+      sqlitePath: /data/argo-center.db
+    clusters:
+    {{- range $cfg.clusters }}
+      - key: {{ .key }}
+        displayName: {{ .displayName | default .key | quote }}
+        url: {{ .url }}
+        tokenEnv: {{ include "argo-center.tokenEnv" .key }}
+        {{- with .caFile }}
+        caFile: {{ . }}
+        {{- end }}
+        {{- if .insecureSkipVerify }}
+        insecureSkipVerify: true
+        {{- end }}
+    {{- end }}

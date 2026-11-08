@@ -1,0 +1,117 @@
+/* Design tokens from the argo-center mockup. Mantine sets data-mantine-color-scheme on <html>. */
+:root[data-mantine-color-scheme='light'] {
+  --ac-page: #f5f6f8;
+  --ac-surface: #ffffff;
+  --ac-border: #e3e6eb;
+  --ac-border-subtle: #eef0f3;
+  --ac-thead: #fafbfc;
+  --ac-text-2: #5b6472;
+  --ac-nav-active: #eef2fc;
+  --ac-code-bg: #f2f4f7;
+
+  --ac-green-bg: #e3f3ea;
+  --ac-green-fg: #17663a;
+  --ac-orange-bg: #fcebd3;
+  --ac-orange-fg: #8a4500;
+  --ac-blue-bg: #e3ebfb;
+  --ac-blue-fg: #1f4bb8;
+  --ac-red-bg: #fbe4e2;
+  --ac-red-fg: #a3241a;
+  --ac-gray-bg: #eef0f3;
+  --ac-gray-fg: #4a5361;
+  --ac-yellow-bg: #fbf1c7;
+  --ac-yellow-fg: #6b5000;
+
+  --ac-diff-add-bg: #e6f4ea;
+  --ac-diff-add-fg: #14532d;
+  --ac-diff-del-bg: #fce8e6;
+  --ac-diff-del-fg: #7f1d1d;
+
+  --mantine-color-text: #16191f;
+  --mantine-color-dimmed: #5b6472;
+  --mantine-color-anchor: #1f4bb8;
+  --mantine-color-default-border: #cdd2da;
+}
+
+:root[data-mantine-color-scheme='dark'] {
+  --ac-page: #141518;
+  --ac-surface: #1c1e22;
+  --ac-border: #2d3036;
+  --ac-border-subtle: #26292e;
+  --ac-thead: #212328;
+  --ac-text-2: #a3aab6;
+  --ac-nav-active: rgba(70, 115, 219, 0.22);
+  --ac-code-bg: #262930;
+
+  --ac-green-bg: rgba(30, 138, 76, 0.2);
+  --ac-green-fg: #7fd4a2;
+  --ac-orange-bg: rgba(217, 122, 0, 0.22);
+  --ac-orange-fg: #f5b866;
+  --ac-blue-bg: rgba(70, 115, 219, 0.26);
+  --ac-blue-fg: #a9c0f5;
+  --ac-red-bg: rgba(224, 49, 49, 0.22);
+  --ac-red-fg: #f4a29a;
+  --ac-gray-bg: #2a2d33;
+  --ac-gray-fg: #c1c7d0;
+  --ac-yellow-bg: rgba(214, 170, 0, 0.2);
+  --ac-yellow-fg: #f0d36b;
+
+  --ac-diff-add-bg: rgba(30, 138, 76, 0.18);
+  --ac-diff-add-fg: #9be0b5;
+  --ac-diff-del-bg: rgba(224, 49, 49, 0.18);
+  --ac-diff-del-fg: #f6b1aa;
+
+  --mantine-color-body: #1c1e22;
+  --mantine-color-text: #e6e8ec;
+  --mantine-color-dimmed: #a3aab6;
+  --mantine-color-anchor: #8fa9e8;
+  --mantine-color-default-border: #3a3e45;
+}
+
+body {
+  background: var(--ac-page);
+  font-size: 14px;
+}
+
+/* Cards: a quieter border than inputs and buttons. */
+.mantine-Paper-root[data-with-border] {
+  border-color: var(--ac-border);
+  background: var(--ac-surface);
+}
+
+.mantine-Divider-root {
+  --divider-color: var(--ac-border-subtle);
+}
+
+.mantine-Code-root {
+  background: var(--ac-code-bg);
+}
+
+.ac-spin {
+  animation: ac-spin 1s linear infinite;
+}
+
+@keyframes ac-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ac-spin {
+    animation: none;
+  }
+}
+
+/* Data tables outside the overview grid: small uppercase headings, quiet row lines. */
+.ac-table {
+  --table-border-color: var(--ac-border-subtle);
+}
+
+.ac-table th {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ac-text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}

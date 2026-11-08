@@ -1,0 +1,40 @@
+# Copy to config.yaml. Tokens come from the environment variables named by tokenEnv:
+#   argocd account generate-token --account argo-center   (on each instance)
+listen: ":8080"
+resyncInterval: 5m
+
+# Login through your OIDC provider. Register redirect URL <publicURL>/auth/callback and post-logout
+# redirect URL <publicURL>/auth/signed-out.
+publicURL: https://argo-center.example.com
+oidc:
+  issuer: https://sso.example.com/realms/example         # discovery: <issuer>/.well-known/openid-configuration
+  clientID: argo-center
+  clientSecretEnv: OIDC_CLIENT_SECRET
+  # allowedGroups: [platform-team]                       # optional; checked against the groups claim
+  # groupsClaim: groups
+  # scopes: [openid, profile, email, groups]             # add the scope that gives you the groups claim
+sessionKeyEnv: SESSION_KEY                               # openssl rand -base64 32
+# For local development without SSO, drop oidc/publicURL/sessionKeyEnv and set:
+# insecureNoAuth: true
+
+rollout:
+  healthTimeout: 10m                                     # per cluster: wait for Healthy after its sync
+
+storage:
+  sqlitePath: /data/argo-center.db                       # audit log and rollouts
+
+# Order here is the column order in the UI and the default rollout order.
+clusters:
+  - key: staging
+    displayName: staging
+    url: https://argocd.staging.example.com
+    tokenEnv: ARGOCD_TOKEN_STAGING
+  - key: prod-eu
+    displayName: prod-eu
+    url: https://argocd.prod-eu.example.com
+    tokenEnv: ARGOCD_TOKEN_PROD_EU
+  - key: prod-us
+    displayName: prod-us
+    url: https://argocd.prod-us.example.com
+    tokenEnv: ARGOCD_TOKEN_PROD_US
+    # caFile: /etc/argo-center/ca.crt      # if the instance uses a private CA

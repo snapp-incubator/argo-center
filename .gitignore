@@ -1,0 +1,15 @@
+/bin/
+/config.yaml
+.env
+web/node_modules/
+web/dist/*
+!web/dist/.gitkeep
+
+# ide files
+.idea
+.vscode
+/env.sh
+*.db
+*.db-shm
+*.db-wal
+*.tsbuildinfo

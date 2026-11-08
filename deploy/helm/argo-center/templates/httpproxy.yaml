@@ -1,0 +1,37 @@
+{{- if and .Values.ingress.enabled (eq .Values.ingress.kind "HTTPProxy") }}
+apiVersion: projectcontour.io/v1
+kind: HTTPProxy
+metadata:
+  name: argo-center
+  labels:
+    {{- include "argo-center.labels" . | nindent 4 }}
+spec:
+  {{- with .Values.ingress.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  virtualhost:
+    fqdn: {{ required "ingress.host is required" .Values.ingress.host }}
+    tls:
+      secretName: {{ required "ingress.tlsSecret is required for HTTPProxy" .Values.ingress.tlsSecret }}
+      {{- if .Values.ingress.enableFallbackCertificate }}
+      enableFallbackCertificate: true
+      {{- end }}
+  routes:
+    # Live updates are a long-lived server-sent event stream (15s heartbeats); the usual 30s
+    # response timeout would cut it every 30 seconds.
+    - conditions:
+        - prefix: /api/events
+      services:
+        - name: argo-center
+          port: 80
+      timeoutPolicy:
+        response: infinity
+        idle: 5m
+    # A hard refresh waits for ArgoCD to regenerate manifests, which can take minutes.
+    - services:
+        - name: argo-center
+          port: 80
+      timeoutPolicy:
+        response: 5m
+        idle: 5m
+{{- end }}

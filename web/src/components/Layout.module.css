@@ -1,0 +1,128 @@
+.header {
+  background: var(--ac-surface);
+  border-bottom: 1px solid var(--ac-border);
+}
+
+.inner {
+  max-width: 1376px;
+  height: 100%;
+  margin: 0 auto;
+  padding: 0 clamp(16px, 3vw, 32px);
+  display: flex;
+  align-items: center;
+  gap: 12px 28px;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: -0.01em;
+  color: var(--mantine-color-text);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.brand svg {
+  color: var(--mantine-color-brand-6);
+}
+
+.nav {
+  display: flex;
+  gap: 4px;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.navLink {
+  padding: 8px 12px;
+  border-radius: 6px;
+  color: var(--ac-text-2);
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.navLink:hover {
+  background: var(--ac-border-subtle);
+  color: var(--mantine-color-text);
+}
+
+.navLink[aria-current='page'] {
+  background: var(--ac-nav-active);
+  color: var(--mantine-color-anchor);
+  font-weight: 600;
+}
+
+.navLink:focus-visible {
+  outline: 2px solid var(--mantine-primary-color-filled);
+  outline-offset: 1px;
+}
+
+.right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.live {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--ac-text-2);
+  white-space: nowrap;
+}
+
+.liveDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #1e8a4c;
+}
+
+.live[data-off] .liveDot {
+  background: #d97a00;
+}
+
+.user {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 6px 4px 10px;
+  border-radius: 999px;
+  color: var(--ac-text-2);
+  font-size: 13px;
+}
+
+.user:hover {
+  background: var(--ac-border-subtle);
+}
+
+.avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--ac-nav-active);
+  color: var(--mantine-color-anchor);
+  display: grid;
+  place-items: center;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.main {
+  max-width: 1376px;
+  margin: 0 auto;
+  padding: 24px clamp(16px, 3vw, 32px) 64px;
+}
+
+@media (max-width: 640px) {
+  .liveLabel,
+  .userName {
+    display: none;
+  }
+}

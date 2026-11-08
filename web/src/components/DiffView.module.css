@@ -1,0 +1,38 @@
+.root {
+  border: 1px solid var(--ac-border);
+  border-radius: var(--mantine-radius-md);
+  overflow: hidden;
+}
+
+.pre {
+  margin: 0;
+  max-height: 480px;
+  overflow: auto;
+  font-family: var(--mantine-font-family-monospace);
+  font-size: 12px;
+  line-height: 1.6;
+  padding: 8px 0;
+  background: var(--ac-surface);
+}
+
+.pre > div {
+  padding: 0 var(--mantine-spacing-sm);
+  white-space: pre;
+  width: max-content;
+  min-width: 100%;
+}
+
+.add {
+  background: var(--ac-diff-add-bg);
+  color: var(--ac-diff-add-fg);
+}
+
+.del {
+  background: var(--ac-diff-del-bg);
+  color: var(--ac-diff-del-fg);
+}
+
+.hunk {
+  color: var(--ac-text-2);
+  background: var(--ac-thead);
+}

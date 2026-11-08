@@ -1,0 +1,85 @@
+# argo-center runs in ONE cluster that can reach every ArgoCD instance below.
+
+image:
+  repository: ghcr.io/snapp-incubator/argo-center
+  # Defaults to the chart's appVersion.
+  tag: ""
+  pullPolicy: IfNotPresent
+imagePullSecrets: []
+
+# Off by default. Without an Ingress, reach the UI with kubectl port-forward (needs insecureNoAuth).
+ingress:
+  enabled: false
+  # Ingress (standard Kubernetes) or HTTPProxy (Contour).
+  kind: Ingress
+  className: ""
+  # The public hostname. Also used for the OIDC redirect URL, so it is required for login even when
+  # ingress.enabled is false. argo-center expects HTTPS in front of it.
+  host: ""
+  # Name of the TLS Secret. Contour also accepts namespace/name for a delegated certificate.
+  tlsSecret: ""
+  # Ingress only. Live updates are a long-lived stream: raise the proxy's response timeout here.
+  annotations: {}
+  # HTTPProxy only. Needs a fallback certificate configured in Contour.
+  enableFallbackCertificate: false
+
+config:
+  resyncInterval: 5m
+  rollout:
+    # Per cluster: how long a rollout waits for Healthy after the sync.
+    healthTimeout: 10m
+  # Column order in the UI and default rollout order. Each cluster's token is read from the
+  # environment variable ARGOCD_TOKEN_<KEY> (key upper-cased, dashes as underscores), which the
+  # Secret provides from argo_center.argocdTokens.<key>.
+  clusters: []
+  # - key: staging                 # lowercase letters, digits and dashes
+  #   url: https://argocd.staging.example.com
+  #   displayName: Staging         # optional, defaults to the key
+  #   caFile: /path/to/ca.crt      # optional, for a private CA
+  #   insecureSkipVerify: false    # optional, last resort
+  oidc:
+    # Required unless insecureNoAuth is true. Register https://<host>/auth/callback as redirect URL.
+    issuer: ""
+    clientID: argo-center
+    # Optional: only members of these groups may log in.
+    allowedGroups: []
+    groupsClaim: ""
+    scopes: []
+  # Turns login off: anyone who reaches the URL can sync, audited as user "local".
+  # Only for a first trial on a private network, before OIDC is set up.
+  insecureNoAuth: false
+
+# Secrets, under an app-named key so they can live in a values file shared with other charts.
+argo_center:
+  # Use an existing Secret instead of the values below. It must hold ARGOCD_TOKEN_<KEY> for every
+  # cluster, plus OIDC_CLIENT_SECRET and SESSION_KEY when OIDC is used.
+  existingSecret: ""
+  # cluster key -> ArgoCD API token of the argo-center account on that instance.
+  argocdTokens: {}
+  oidcClientSecret: ""
+  # openssl rand -base64 32
+  sessionKey: ""
+
+# SQLite database: audit log and rollouts.
+persistence:
+  size: 1Gi
+  storageClass: ""
+
+# fsGroup makes the SQLite volume writable on plain Kubernetes. On OpenShift, set it to null: the
+# restricted SCC assigns the UID and GID itself and rejects a fixed value.
+podSecurityContext:
+  runAsNonRoot: true
+  fsGroup: 65532
+  seccompProfile:
+    type: RuntimeDefault
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+  limits:
+    memory: 1Gi
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
