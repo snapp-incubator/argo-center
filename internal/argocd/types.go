@@ -125,6 +125,15 @@ type SyncRequest struct {
 	Infos []Info `json:"infos,omitempty"`
 }
 
+// PatchRequest is the body of PATCH /api/v1/applications/{name}.
+type PatchRequest struct {
+	Name         string `json:"name"`
+	AppNamespace string `json:"appNamespace,omitempty"`
+	// Patch is a JSON document, sent as a string; PatchType is "merge" or "json".
+	Patch     string `json:"patch"`
+	PatchType string `json:"patchType"`
+}
+
 type SyncResource struct {
 	Group     string `json:"group"`
 	Kind      string `json:"kind"`

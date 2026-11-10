@@ -66,7 +66,7 @@ func TestDiffAndRefresh(t *testing.T) {
 	cm := func(v string) string {
 		return strconv.Quote(`{"apiVersion":"v1","kind":"ConfigMap","metadata":{"name":"c"},"data":{"LOG_LEVEL":"` + v + `"}}`)
 	}
-	var refreshed, synced atomic.Value
+	var refreshed, synced, patched atomic.Value
 	argo := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/api/v1/applications":
@@ -84,6 +84,12 @@ func TestDiffAndRefresh(t *testing.T) {
 			w.WriteHeader(http.StatusConflict)
 			fmt.Fprint(w, `{"message":"no operation in progress"}`)
 		case "/api/v1/applications/api":
+			if r.Method == http.MethodPatch {
+				b, _ := io.ReadAll(r.Body)
+				patched.Store(b)
+				fmt.Fprint(w, strings.Replace(app, `"status"`, `"spec":{"source":{"targetRevision":"release-1"}},"status"`, 1))
+				return
+			}
 			refreshed.Store(r.URL.Query().Get("refresh") + " " + r.URL.Query().Get("appNamespace"))
 			fmt.Fprint(w, app)
 		default:
@@ -162,13 +168,35 @@ func TestDiffAndRefresh(t *testing.T) {
 		t.Errorf("terminate with ArgoCD error: status %d, want 409", code)
 	}
 
+	for body, want := range map[string]int{
+		`{"targetRevision":""}`:              400,
+		`{"targetRevision":"two words"}`:     400,
+		`{"targetRevision":" release-1 \n"}`: 204,
+	} {
+		if code := post(t, "PUT", srv.URL+"/api/apps/api/target-revision?cluster=cluster-a", body); code != want {
+			t.Errorf("target revision %s: status %d, want %d", body, code, want)
+		}
+	}
+	var patch argocd.PatchRequest
+	json.Unmarshal(patched.Load().([]byte), &patch)
+	if patch.Name != "api" || patch.AppNamespace != "argocd" || patch.PatchType != "merge" ||
+		patch.Patch != `{"spec":{"source":{"targetRevision":"release-1"}}}` {
+		t.Errorf("ArgoCD got patch request %+v", patch)
+	}
+	if row, _ := c.App("api"); row.Cells["cluster-a"].TargetRevision != "release-1" {
+		t.Errorf("cache has target revision %q after the change", row.Cells["cluster-a"].TargetRevision)
+	}
+
 	entries, _ := auditLog.List(context.Background(), audit.Filter{App: "api"})
 	var actions []string
 	for _, e := range entries {
 		actions = append(actions, e.Action+":"+e.Result)
 	}
-	if want := "terminate:error sync:ok refresh-hard:ok"; strings.Join(actions, " ") != want {
+	if want := "target-revision:ok terminate:error sync:ok refresh-hard:ok"; strings.Join(actions, " ") != want {
 		t.Errorf("audit = %v, want %s", actions, want)
+	}
+	if e := entries[0]; e.Revision != "release-1" || len(e.Options) != 1 || e.Options[0] != "was HEAD" {
+		t.Errorf("target revision audit entry = %+v", e)
 	}
 }
 

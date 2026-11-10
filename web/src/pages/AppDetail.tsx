@@ -34,7 +34,8 @@ import { ClusterStatus, HealthBadge, isSyncing, SyncBadge } from '../components/
 import { SyncDialog } from '../components/SyncDialog';
 import { RolloutBanner } from '../components/RolloutBanner';
 import { RolloutDialog } from '../components/RolloutDialog';
-import { compareURL, shortRev, timeAgo } from '../format';
+import { TargetRevisionDialog } from '../components/TargetRevisionDialog';
+import { compareURL, shortRev, timeAgo, trackedRev } from '../format';
 import { Rev } from '../components/Rev';
 import { ChevronDownIcon, ExternalIcon, RefreshIcon } from '../components/icons';
 import classes from './AppDetail.module.css';
@@ -49,6 +50,7 @@ export function AppDetail() {
   const { state: refreshing, refresh } = useRefresh(name);
   const latestRollout = useLatestRollout(name);
   const [rolloutOpen, setRolloutOpen] = useState(false);
+  const [revisionOpen, setRevisionOpen] = useState(false);
 
   const crumbs = (
     <nav aria-label="Breadcrumb" className={classes.crumbs}>
@@ -78,6 +80,9 @@ export function AppDetail() {
   const first = Object.values(app.data.cells)[0];
   const present = clusters.data.filter((c) => app.data.cells[c.key]).map((c) => c.key);
   const anyRefreshing = present.some((k) => refreshing[k]?.pending);
+  const singleSource = present.map((k) => app.data.cells[k]).filter((s) => !s.multiSource);
+  // Clusters can track different revisions; list each one once.
+  const tracked = [...new Set(singleSource.map(trackedRev))];
   const rolloutActive = latestRollout.data ? isActiveRollout(latestRollout.data) : false;
   const rolloutRunningOn = (cluster: string) =>
     latestRollout.data?.state === 'running' && latestRollout.data.steps.some((s) => s.cluster === cluster)
@@ -97,7 +102,7 @@ export function AppDetail() {
               {first.path}
             </Meta>
             <Meta label="tracking" mono>
-              {first.targetRevision}
+              {tracked.join(', ')}
             </Meta>
           </div>
         </Stack>
@@ -107,6 +112,11 @@ export function AppDetail() {
             state={{ pending: anyRefreshing }}
             onRefresh={(hard) => refresh(present, hard)}
           />
+          {singleSource.length > 0 && (
+            <Button variant="default" onClick={() => setRevisionOpen(true)}>
+              Change revision…
+            </Button>
+          )}
           <Tooltip label="An active rollout must finish or be aborted first" disabled={!rolloutActive}>
             <Button onClick={() => setRolloutOpen(true)} disabled={rolloutActive}>
               Sync all…
@@ -122,6 +132,14 @@ export function AppDetail() {
         onClose={() => setRolloutOpen(false)}
         refreshing={refreshing}
         onRefresh={(keys) => refresh(keys)}
+      />
+      <TargetRevisionDialog
+        app={name}
+        clusters={clusters.data}
+        cells={app.data.cells}
+        opened={revisionOpen}
+        onClose={() => setRevisionOpen(false)}
+        onChanged={(keys) => refresh(keys)}
       />
 
       {latestRollout.data && (
@@ -280,6 +298,12 @@ function ClusterCard({
       {summary && (
         <div className={classes.cardBody}>
           <dl className={classes.facts}>
+            {!summary.multiSource && (
+              <>
+                <dt>Tracking</dt>
+                <dd data-mono>{trackedRev(summary)}</dd>
+              </>
+            )}
             <dt>Live</dt>
             <dd data-mono>
               <Rev repo={summary.repoURL} rev={summary.deployedRevision} size="xs" />

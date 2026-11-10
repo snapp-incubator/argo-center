@@ -195,6 +195,28 @@ func (c *Client) GetApplication(ctx context.Context, app, appNamespace string) (
 	return &a, nil
 }
 
+// SetTargetRevision changes the revision the application tracks (spec.source.targetRevision) to a
+// branch, tag or commit, and returns the updated application. ArgoCD compares the app with the new
+// revision by itself afterwards. The token needs the `applications, update` right.
+func (c *Client) SetTargetRevision(ctx context.Context, app, appNamespace, revision string) (*Application, error) {
+	patch, err := json.Marshal(map[string]any{"spec": map[string]any{"source": map[string]any{"targetRevision": revision}}})
+	if err != nil {
+		return nil, err
+	}
+	req := PatchRequest{Name: app, AppNamespace: appNamespace, Patch: string(patch), PatchType: "merge"}
+	resp, err := c.send(ctx, c.api, http.MethodPatch, "/api/v1/applications/"+url.PathEscape(app), nil, req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var a Application
+	if err := json.NewDecoder(resp.Body).Decode(&a); err != nil {
+		return nil, fmt.Errorf("decode application: %w", err)
+	}
+	return &a, nil
+}
+
 // Sync starts a sync operation. It returns once ArgoCD has accepted the operation, not when it finishes;
 // progress shows up in the application's operationState.
 func (c *Client) Sync(ctx context.Context, app string, req SyncRequest) error {
