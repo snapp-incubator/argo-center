@@ -66,7 +66,9 @@ persistence:
   storageClass: ""
 
 # fsGroup makes the SQLite volume writable on plain Kubernetes. On OpenShift, set it to null: the
-# restricted SCC assigns the UID and GID itself and rejects a fixed value.
+# restricted SCC assigns the UID and GID itself and rejects a fixed value. When this chart is a
+# dependency of another chart, set it to "" instead: Helm does not pass a null from the parent
+# chart's values.yaml down to a dependency.
 podSecurityContext:
   runAsNonRoot: true
   fsGroup: 65532
