@@ -2,11 +2,13 @@ import { AppShell, Badge, Menu, Tooltip, UnstyledButton } from '@mantine/core';
 import { Link, Outlet, useLocation } from 'react-router';
 import { useLiveUpdates, useMe } from '../api';
 import { ColorSchemeToggle } from './ColorSchemeToggle';
+import { ErrorBoundary } from './ErrorBoundary';
 import { LogoIcon } from './icons';
 import classes from './Layout.module.css';
 
 export function Layout() {
   const live = useLiveUpdates();
+  const { pathname } = useLocation();
 
   return (
     <AppShell header={{ height: 60 }}>
@@ -34,7 +36,9 @@ export function Layout() {
       </AppShell.Header>
       <AppShell.Main>
         <div className={classes.main}>
-          <Outlet />
+          <ErrorBoundary key={pathname}>
+            <Outlet />
+          </ErrorBoundary>
         </div>
       </AppShell.Main>
     </AppShell>
