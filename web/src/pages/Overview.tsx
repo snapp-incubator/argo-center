@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Anchor,
@@ -43,7 +43,7 @@ export function Overview() {
   const rollouts = useActiveRollouts();
   // Filters live in the URL (?q=&project=&view=attention), so a filtered view can be shared.
   const [params, setParams] = useSearchParams();
-  const query = params.get('q') ?? '';
+  const urlQuery = params.get('q') ?? '';
   const filter = params.get('view') === 'attention' ? 'attention' : 'all';
   const project = params.get('project');
   const setParam = (key: string, value: string | null) =>
@@ -56,6 +56,21 @@ export function Overview() {
       },
       { replace: true },
     );
+
+  // The router updates the URL in a transition, so it lags behind fast typing. The input keeps
+  // its own state and the URL follows it; otherwise a late URL update overwrites newer keystrokes.
+  const [query, setQuery] = useState(urlQuery);
+  const written = useRef<string[]>([]);
+  const search = (value: string) => {
+    setQuery(value);
+    written.current.push(value);
+    setParam('q', value);
+  };
+  useEffect(() => {
+    const i = written.current.indexOf(urlQuery);
+    if (i === -1) setQuery(urlQuery); // changed from outside, e.g. a link
+    else written.current.splice(0, i + 1);
+  }, [urlQuery]);
 
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -117,7 +132,7 @@ export function Overview() {
             aria-label="Search applications"
             leftSection={<SearchIcon />}
             value={query}
-            onChange={(e) => setParam('q', e.currentTarget.value)}
+            onChange={(e) => search(e.currentTarget.value)}
             size="md"
             w={240}
           />
