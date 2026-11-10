@@ -2,6 +2,6 @@ apiVersion: v2
 name: argo-center
 description: One panel for the applications on all ArgoCD instances (diff, sync, ordered rollouts).
 type: application
-version: 0.4.1
+version: 0.4.2
 # Image tag used when image.tag is empty.
-appVersion: "0.4.1"
+appVersion: "0.4.2"
