@@ -159,11 +159,17 @@ export function SyncDialog({ app, cluster, summary, opened, onClose, refreshStat
                 </Text>
               ) : (
                 <div>
-                  <Group justify="space-between" mb={6}>
-                    <Text size="sm" fw={600}>
-                      {chosen.length} of {resources.length} resources selected
-                    </Text>
-                  </Group>
+                  <Checkbox
+                    mb={8}
+                    size="sm"
+                    fw={600}
+                    disabled={candidates.length === 0}
+                    checked={candidates.length > 0 && !partial}
+                    indeterminate={partial && chosen.length > 0}
+                    onChange={() => setDeselected(partial ? new Set() : new Set(candidates.map(resourceKey)))}
+                    label={`${chosen.length} of ${resources.length} resources selected`}
+                    title={partial ? 'Select all' : 'Deselect all'}
+                  />
                   <ScrollArea.Autosize mah={300} type="auto" scrollbars="y">
                     <Stack gap={4}>
                       {resources.map((r) => {

@@ -207,7 +207,7 @@ Each cell (`AppSummary`) also carries `argocdURL` for a deep link to that app in
 ### 9.3 Sync dialog (single cluster)
 - Opening it refreshes the app on that cluster first, then shows the resources that differ (all selected; not-in-Git ones only selectable with Prune) and the pinned revision.
 - **Dry run** runs in the dialog and shows its result there; **Sync** closes it and the card shows progress. The card itself only has **Sync…** (no separate Dry run button), so every action starts from a fresh comparison.
-- Options: Prune, Apply out-of-sync only (default on), select resources.
+- Options: Prune, Apply out-of-sync only (default on), select resources. The checkbox above the list selects or deselects all of them.
 
 ### 9.4 Rollout dialog ("Sync all…")
 - Refreshes every cluster on open, then lists them in config order with ↑/↓ to reorder and checkboxes (pre-checked = not Synced), each with `live → pinned` commit.
