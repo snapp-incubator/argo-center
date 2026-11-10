@@ -179,8 +179,9 @@ func clean(obj map[string]any) {
 // Paths returns the field paths that differ between a (live) and b (after sync), in sorted order.
 // A subtree present on only one side is reported once, at its root.
 // Lists whose items all have a unique "name" are matched by name: containers[app].image.
+// The result is never nil, so it is "[]" rather than "null" in JSON.
 func Paths(a, b any) []Change {
-	var out []Change
+	out := []Change{}
 	walk("", a, b, &out)
 	return out
 }

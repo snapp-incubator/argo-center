@@ -81,6 +81,23 @@ func TestComputeStatuses(t *testing.T) {
 	}
 }
 
+// A resource can be marked modified while only ignored fields differ. Its changes must still be
+// an empty list in JSON: the UI reads its length.
+func TestModifiedWithoutChangesIsNotNull(t *testing.T) {
+	live := `{"kind":"ConfigMap","metadata":{"name":"c","resourceVersion":"1"},"data":{"a":"1"}}`
+	target := `{"kind":"ConfigMap","metadata":{"name":"c","resourceVersion":"2"},"data":{"a":"1"}}`
+	res, err := Compute([]argocd.ManagedResource{{
+		Kind: "ConfigMap", Name: "c", Modified: true,
+		TargetState: target, NormalizedLiveState: live, PredictedLiveState: target,
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(res) != 1 || res[0].Changes == nil {
+		t.Fatalf("changes must be an empty list, got %+v", res)
+	}
+}
+
 func TestPathsLists(t *testing.T) {
 	a := map[string]any{"args": []any{"--a", "--b"}, "ports": []any{map[string]any{"name": "http", "port": int64(80)}}}
 	b := map[string]any{"args": []any{"--a", "--c", "--d"}, "ports": []any{map[string]any{"name": "http", "port": int64(8080)}}}
