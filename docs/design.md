@@ -61,6 +61,7 @@ Browser ──► │  React SPA (embedded)                                     
   p, role:argo-center, applications, get,     */*, allow
   p, role:argo-center, applications, sync,    */*, allow
   p, role:argo-center, applications, action/*, */*, allow   # not used in v1
+  p, role:argo-center, applications, update,  */*, allow   # only to change the target revision (7.6)
   g, argo-center, role:argo-center
   ```
   `argocd account generate-token --account argo-center` on each instance.
@@ -145,7 +146,15 @@ next
 - Stored as JSON rows in SQLite (`rollouts` table, same DB as the audit log); every change emits a `rollout-updated` SSE event.
 
 ### 7.5 Audit
-SQLite table, one row per action: `ts, user, action (sync|dry-run|terminate|refresh-hard|rollout-*), app, cluster, revision, options, result, message`. Also logged as structured JSON to stdout.
+SQLite table, one row per action: `ts, user, action (sync|dry-run|terminate|refresh-hard|target-revision|rollout-*), app, cluster, revision, options, result, message`. Also logged as structured JSON to stdout.
+
+### 7.6 Target revision
+- Changes what an app tracks on one cluster: `PATCH /api/v1/applications/{name}` with the merge patch `{"spec":{"source":{"targetRevision":"<rev>"}}}`. Any branch, tag or commit; `HEAD` goes back to the default branch. Needs the `applications, update` right.
+- It never syncs. ArgoCD compares the app with the new revision, and the diff / sync / rollout flow then works as for a new commit. Exception: with auto-sync on, ArgoCD applies the new revision by itself (the dialog warns).
+- Refused for multi-source apps (400) and while a rollout is running on that cluster (409). An active rollout that is not running sees the change as "Git moved" and pauses for confirmation.
+- Whether the revision exists is not checked here: ArgoCD reports an unknown revision as a comparison error on the app.
+- Audited as `target-revision`, with the new revision and `was <old>`.
+- An Application that is itself managed from Git (app-of-apps, ApplicationSet) may be set back by its owner.
 
 ## 8. HTTP API (backend → SPA)
 
@@ -160,6 +169,7 @@ POST   /api/apps/{name}/refresh?cluster=X&hard=true   → 204 once ArgoCD finish
 GET    /api/apps/{name}/diff?cluster=X     → {cluster, revision, reconciledAt, resources: [{group,kind,namespace,name,status,changes,moreChanges,unifiedDiff,truncated}]}
 POST   /api/apps/{name}/sync               {cluster, revision, prune, dryRun, applyOutOfSyncOnly, resources?}
 DELETE /api/apps/{name}/operation?cluster=X
+PUT    /api/apps/{name}/target-revision?cluster=X     {targetRevision} → 204
 
 POST   /api/rollouts                       {app, steps: [{cluster, revision}] (ordered), options: {prune, applyOutOfSyncOnly}}
 GET    /api/rollouts?app=&active=
@@ -184,7 +194,8 @@ Each cell (`AppSummary`) also carries `argocdURL` for a deep link to that app in
 - Row click → app detail.
 
 ### 9.2 App detail (`/apps/:name`)
-- Header: app name, project, repo/path, actions **Refresh all**, **Sync all out-of-sync…**
+- Header: app name, project, repo/path, tracked revision(s), actions **Refresh all**, **Change revision…**, **Sync all out-of-sync…**
+- **Change revision…**: a revision field and a checkbox per cluster (with what it tracks now). Clusters already on that revision are skipped; the changed ones are refreshed so the cards show the new diff.
 - One card per cluster:
   - status, health, current → target revision (commit link), last sync time + result
   - brief diff: `N resources differ · compared with <rev> <age>` + list of `Kind/name — changed paths` (first 10, then "Show all")

@@ -93,6 +93,7 @@ export interface AuditEntry {
     | 'dry-run'
     | 'terminate'
     | 'refresh-hard'
+    | 'target-revision'
     | 'rollout-start'
     | 'rollout-abort'
     | 'rollout-resume'
@@ -237,6 +238,10 @@ export const syncApp = (name: string, cluster: string, opts: SyncOptions) =>
 
 export const terminateOperation = (name: string, cluster: string) =>
   request<void>('DELETE', appPath(name, cluster, 'operation'));
+
+/** Changes the revision the app tracks on one cluster (a branch, tag or commit). Does not sync. */
+export const setTargetRevision = (name: string, cluster: string, targetRevision: string) =>
+  request<void>('PUT', appPath(name, cluster, 'target-revision'), { targetRevision });
 
 /** The app's latest rollout, active or not. */
 export const useLatestRollout = (app: string) =>

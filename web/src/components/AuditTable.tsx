@@ -10,6 +10,7 @@ export const actionLabel: Record<AuditEntry['action'], string> = {
   'dry-run': 'Dry run',
   terminate: 'Terminate',
   'refresh-hard': 'Hard refresh',
+  'target-revision': 'Target revision changed',
   'rollout-start': 'Rollout started',
   'rollout-abort': 'Rollout aborted',
   'rollout-resume': 'Rollout resumed',

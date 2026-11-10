@@ -65,6 +65,7 @@ accounts.argo-center: apiKey
 # argocd-rbac-cm (policy.csv)
 p, role:argo-center, applications, get, */*, allow
 p, role:argo-center, applications, sync, */*, allow
+p, role:argo-center, applications, update, */*, allow   # only for "Change revision…"
 g, argo-center, role:argo-center
 ```
 
@@ -87,10 +88,24 @@ pinned to the commit of that diff, so a commit landing in the meantime is not ap
 dialog says so). Options: prune, apply out-of-sync only, and a subset of resources. **Dry run** shows
 its result in the dialog. A running operation can be terminated from the card.
 
-Every sync, dry run, terminate and hard refresh is recorded in SQLite (`storage.sqlitePath`) and in
+Every sync, dry run, terminate, hard refresh and target revision change is recorded in SQLite (`storage.sqlitePath`) and in
 the JSON log, with the user, revision, options and ArgoCD's answer. The app page lists the latest
 entries. "Accepted" means ArgoCD accepted the request; the outcome of the operation itself shows on
 the cluster card.
+
+## Changing the tracked revision
+
+**Change revision…** on an app sets the revision it tracks (`spec.source.targetRevision`) to a
+branch, tag or commit instead of `HEAD`, on the clusters you tick. Nothing is synced: ArgoCD compares
+each cluster with the new revision, and you review the diff and sync as usual. Enter `HEAD` to go
+back to the default branch. Notes:
+
+- The token needs the `applications, update` right (see [Tokens](#tokens)). Without it ArgoCD
+  refuses the change and everything else keeps working.
+- With auto-sync on, ArgoCD deploys the new revision by itself; the dialog warns about it.
+- If the Application is itself created from Git (app-of-apps, ApplicationSet), ArgoCD may set the
+  revision back. Change it in Git in that case.
+- Apps with several sources are not supported.
 
 ## Rollouts (Sync all)
 

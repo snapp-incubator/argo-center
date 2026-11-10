@@ -47,6 +47,7 @@ func New(c *cache.Cache, static fs.FS, authn *auth.Authenticator, auditLog *audi
 	s.mux.HandleFunc("GET /api/audit/users", s.auditUsers)
 	s.mux.HandleFunc("POST /api/apps/{name}/sync", s.sync)
 	s.mux.HandleFunc("DELETE /api/apps/{name}/operation", s.terminate)
+	s.mux.HandleFunc("PUT /api/apps/{name}/target-revision", s.targetRevision)
 	s.mux.HandleFunc("GET /api/clusters", s.clusters)
 	s.mux.HandleFunc("GET /api/apps", s.apps)
 	s.mux.HandleFunc("GET /api/apps/{name}", s.app)
@@ -238,6 +239,71 @@ func (s *Server) terminate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// defaultTargetRevision is what ArgoCD tracks when spec.source.targetRevision is empty.
+const defaultTargetRevision = "HEAD"
+
+// targetRevision changes the revision the app tracks on one cluster (spec.source.targetRevision).
+// It does not sync: ArgoCD compares the app with the new revision, and the change is then reviewed
+// and synced like any other. With auto-sync on, ArgoCD applies the new revision by itself.
+func (s *Server) targetRevision(w http.ResponseWriter, r *http.Request) {
+	src, summary, ok := s.target(w, r)
+	if !ok {
+		return
+	}
+	if summary.MultiSource {
+		writeError(w, http.StatusBadRequest, "the app has several sources; change their revisions in ArgoCD")
+		return
+	}
+	if ro, busy := s.rollouts.Busy(r.Context(), summary.Name, src.Key); busy {
+		writeError(w, http.StatusConflict, fmt.Sprintf("rollout #%d is running on %s; abort it or wait for it to finish", ro.ID, src.Key))
+		return
+	}
+	var body struct {
+		TargetRevision string `json:"targetRevision"`
+	}
+	if err := json.NewDecoder(io.LimitReader(r.Body, 1<<16)).Decode(&body); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body: "+err.Error())
+		return
+	}
+	rev := strings.TrimSpace(body.TargetRevision)
+	if err := validRevision(rev); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	app, err := src.Client.SetTargetRevision(r.Context(), summary.Name, summary.Namespace, rev)
+	s.record(r, audit.Entry{
+		Action: audit.ActionTargetRevision, App: summary.Name, Cluster: src.Key, Revision: rev,
+		Options: []string{"was " + cmp.Or(summary.TargetRevision, defaultTargetRevision)},
+	}, err)
+	if err != nil {
+		upstreamError(w, src.Key, err)
+		return
+	}
+	s.cache.Put(src.Key, *app)
+	slog.Info("target revision changed", "app", summary.Name, "cluster", src.Key, "from", summary.TargetRevision, "to", rev)
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// validRevision checks that rev can be a branch, tag, commit or chart version. Whether it exists
+// is for ArgoCD to say: an unknown revision shows as a comparison error on the app.
+func validRevision(rev string) error {
+	switch {
+	case rev == "":
+		return errors.New("targetRevision is required; use HEAD for the default branch")
+	case len(rev) > 255:
+		return errors.New("targetRevision is too long")
+	case strings.HasPrefix(rev, "-"):
+		return errors.New("targetRevision must not start with '-'")
+	}
+	for _, c := range rev {
+		if c <= ' ' || c == 0x7f {
+			return errors.New("targetRevision must not contain spaces or control characters")
+		}
+	}
+	return nil
 }
 
 func (s *Server) auditList(w http.ResponseWriter, r *http.Request) {

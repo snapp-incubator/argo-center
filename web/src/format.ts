@@ -23,6 +23,9 @@ export function timeAgo(iso?: string): string {
 
 export const shortRev = (rev?: string) => (rev ? rev.slice(0, 7) : '—');
 
+/** The revision an app tracks; ArgoCD reads an empty target revision as HEAD. */
+export const trackedRev = (s: { targetRevision: string }) => s.targetRevision || 'HEAD';
+
 /**
  * Web URL of a Git repository, from the forms ArgoCD uses: git@host:group/repo.git,
  * ssh://git@host/group/repo.git or https://host/group/repo(.git). Undefined if unrecognized.

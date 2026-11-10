@@ -16,6 +16,8 @@ const (
 	ActionDryRun      = "dry-run"
 	ActionTerminate   = "terminate"
 	ActionHardRefresh = "refresh-hard"
+	// ActionTargetRevision is a change of the revision an app tracks; Entry.Revision holds the new one.
+	ActionTargetRevision = "target-revision"
 
 	ActionRolloutStart   = "rollout-start"
 	ActionRolloutAbort   = "rollout-abort"
