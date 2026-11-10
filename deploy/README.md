@@ -7,7 +7,19 @@ login) an OIDC client.
 ## 1. Image
 
 Each `vX.Y.Z` tag builds and pushes `ghcr.io/snapp-incubator/argo-center:X.Y.Z` and `:latest`
-(`.github/workflows/release.yml`). The tag must match the chart's `appVersion`; bump both together.
+(`.github/workflows/release.yml`), and the chart to `oci://ghcr.io/snapp-incubator/charts/argo-center`
+with version `X.Y.Z`. The tag must match the chart's `version` and `appVersion`; bump all together.
+
+To use the chart as a dependency of your own chart:
+
+```yaml
+dependencies:
+  - name: argo-center
+    version: X.Y.Z
+    repository: oci://ghcr.io/snapp-incubator/charts
+```
+
+All values then go under an `argo-center:` key.
 
 To build it yourself:
 
@@ -81,7 +93,8 @@ To try it without login, set `config.insecureNoAuth: true`, leave the ingress of
 then sync, so keep that to a short trial.
 
 **OpenShift:** set `podSecurityContext.fsGroup: null`. The restricted SCC assigns the UID and GID
-itself and rejects a fixed value.
+itself and rejects a fixed value. With argo-center as a dependency of your own chart, use
+`fsGroup: ""` under the `argo-center:` key, because Helm does not pass a null down to a dependency.
 
 **Proxy timeouts:** live updates use a long-lived stream on `/api/events`, with a heartbeat every 15
 seconds, and a hard refresh can wait minutes for an answer. Your proxy must allow both. The

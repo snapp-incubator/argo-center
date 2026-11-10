@@ -1,4 +1,5 @@
-# Pushing a tag vX.Y.Z builds the image and pushes it to ghcr.io/<owner>/<repo>:X.Y.Z and :latest.
+# Pushing a tag vX.Y.Z builds the image and pushes it to ghcr.io/<owner>/<repo>:X.Y.Z and :latest,
+# then pushes the Helm chart to oci://ghcr.io/<owner>/charts/argo-center:X.Y.Z.
 name: Release
 
 on:
@@ -22,6 +23,11 @@ jobs:
             echo "tag $GITHUB_REF_NAME does not match the chart's appVersion $chart"
             exit 1
           fi
+          chart="$(sed -n 's/^version: \(.*\)/\1/p' deploy/helm/argo-center/Chart.yaml)"
+          if [ "$version" != "$chart" ]; then
+            echo "tag $GITHUB_REF_NAME does not match the chart's version $chart"
+            exit 1
+          fi
           echo "VERSION=$version" >> "$GITHUB_ENV"
       - uses: docker/login-action@v4
         with:
@@ -40,3 +46,8 @@ jobs:
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.version=${{ env.VERSION }}
             org.opencontainers.image.licenses=Apache-2.0
+      - name: Push the Helm chart
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io --username "${{ github.actor }}" --password-stdin
+          helm package deploy/helm/argo-center --destination "$RUNNER_TEMP"
+          helm push "$RUNNER_TEMP/argo-center-$VERSION.tgz" "oci://ghcr.io/${{ github.repository_owner }}/charts"

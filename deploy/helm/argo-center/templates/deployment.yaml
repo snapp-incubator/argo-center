@@ -29,7 +29,12 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       securityContext:
-        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+        {{- /* An empty fsGroup means "do not set one"; see values.yaml. */}}
+        {{- $podSecurity := .Values.podSecurityContext }}
+        {{- if not $podSecurity.fsGroup }}
+        {{- $podSecurity = omit $podSecurity "fsGroup" }}
+        {{- end }}
+        {{- toYaml $podSecurity | nindent 8 }}
       # A rollout in progress is marked "interrupted" on restart; give requests time to finish.
       terminationGracePeriodSeconds: 30
       containers:
